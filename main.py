@@ -15,7 +15,7 @@ model = tf.keras.models.load_model("base_toxic_model.h5")
 with open("base_tokenizer.json", "r") as f:
     tokenizer = tokenizer_from_json(f.read())
 
-predictor = ContextAwarePredictor(model, tokenizer, similarity_threshold=0.4)
+predictor = ContextAwarePredictor(model, tokenizer, similarity_threshold=0.3)
 
 # --- Request schemas ---
 class CommentRequest(BaseModel):
@@ -39,5 +39,33 @@ def mark_safe(req: FeedbackRequest):
 def list_feedback():
     return [
             {"text": item["original_text"], "forgive_labels": item["forgive_labels"]}
-            for item in predictor.forgiven_embeddings
+            for item in predictor.forgiven_texts
             ]
+
+@app.post("/debug/similarity")
+def debug_similarity(req: CommentRequest):
+    from sklearn.feature_extraction.text import TfidfVectorizer
+    from sklearn.metrics.pairwise import cosine_similarity
+    
+    if not predictor.forgiven_texts:
+        return {"error": "no feedback stored"}
+    
+    forgiven_texts = [item["original_text"] for item in predictor.forgiven_texts]
+    all_texts = forgiven_texts + [req.text]
+    
+    vectorizer = TfidfVectorizer()
+    tfidf_matrix = vectorizer.fit_transform(all_texts)
+    current_vec = tfidf_matrix[-1]
+    
+    results = []
+    for i, item in enumerate(predictor.forgiven_texts):
+        sim = cosine_similarity(current_vec, tfidf_matrix[i])[0][0]
+        results.append({
+            "forgiven_text": item["original_text"],
+            "input_text": req.text,
+            "similarity": float(round(sim, 4)),
+            "threshold": predictor.similarity_threshold,
+            "would_suppress": bool(sim >= predictor.similarity_threshold)
+        })
+    
+    return results
