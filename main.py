@@ -15,7 +15,7 @@ model = tf.keras.models.load_model("base_toxic_model.h5")
 with open("base_tokenizer.json", "r") as f:
     tokenizer = tokenizer_from_json(f.read())
 
-predictor = ContextAwarePredictor(model, tokenizer)
+predictor = ContextAwarePredictor(model, tokenizer, similarity_threshold=0.92)
 
 # --- Request schemas ---
 class CommentRequest(BaseModel):
