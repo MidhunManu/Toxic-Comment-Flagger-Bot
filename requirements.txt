@@ -1,0 +1,12 @@
+fastapi==0.111.0
+uvicorn==0.30.1
+
+tensorflow==2.15.0
+
+scikit-learn==1.4.2
+numpy==1.26.4
+
+python-telegram-bot==20.7
+requests==2.32.3
+
+pydantic==2.7.1
